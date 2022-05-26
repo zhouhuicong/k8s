@@ -1,0 +1,34 @@
+
+
+ 
+
+---
+# 内部访问的无头服务
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-service
+spec:
+  selector:
+    app: redis
+  ports:
+  - name: redis
+    port: 6379
+  clusterIP: None
+ 
+---
+# 外部访问的服务
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-external-service
+spec:
+  selector:
+    app: redis
+  ports:
+  - name: redis
+    protocol: TCP
+    port: 6379
+    targetPort: 6379
+    nodePort: 30379
+  type: NodePort

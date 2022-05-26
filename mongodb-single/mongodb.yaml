@@ -1,0 +1,112 @@
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: default-mongo-pvc
+  namespace: default
+  labels:
+    dir: default-mongo
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 500Mi
+  storageClassName: nfs-subdir-client  //需安装nfs-client插件
+  volumeMode: Filesystem
+
+---
+kind: ConfigMap
+metadata:
+  name: mongodb-conf
+  namespace: default
+apiVersion: v1
+data:
+  mongod.conf: |-
+    #dbpath=/mongo/data
+    #logpath=/mongo/log/mongodb.log
+    #pidfilepath=/mongo/key/master.pid
+    directoryperdb=true
+    logappend=true
+    bind_ip=0.0.0.0
+    port=27017
+
+---
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata: 
+  name: oa-mongo
+  namespace: default
+  app: mongo-cluster
+spec: 
+  selector: 
+    matchLabels: 
+      name: oa-mongo
+  serviceName: "oa-mongo"
+  replicas: 1
+  podManagementPolicy: Parallel
+  template: 
+    metadata: 
+      labels: 
+        name: oa-mongo
+        app: mongo-cluster
+    spec: 
+      terminationGracePeriodSeconds: 10
+      affinity: 
+         podAntiAffinity: 
+           requiredDuringSchedulingIgnoredDuringExecution: 
+           - labelSelector: 
+               matchExpressions: 
+               - key: "name"
+                 operator: In
+                 values: 
+                 - mongo
+             topologyKey: "kubernetes.io/hostname"
+      containers: 
+      - name: mongo
+        image: mongo:4.2
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: MONGO_INITDB_ROOT_USERNAME
+            value: root
+          - name: MONGO_INITDB_ROOT_PASSWORD
+            value: 'Ubiquant@123'
+        command:  
+        - mongod 
+        - "-f"
+        - "/etc/mongod.conf"
+        - "--bind_ip_all"
+        ports: 
+        - containerPort: 27017
+        volumeMounts: 
+        - name: mongo-cnf-volume
+          mountPath: /etc/mongod.conf/
+          subPath: mongod.conf
+        - name: mongo-dir
+          mountPath: /mongo
+      volumes:
+        - name: mongo-cnf-volume     #映射configMap信息
+          configMap:
+            name: mongodb-conf
+            items:
+              - key: mongod.conf
+                path: mongod.conf
+        - name: mongo-dir
+          persistentVolumeClaim:
+            claimName: default-mongo-pvc
+---
+
+
+kind: Service
+apiVersion: v1
+metadata:
+  name: mongo
+  namespace: default
+spec:
+  ports:
+    - protocol: TCP
+      port: 30017
+      targetPort: 27017 
+  selector:
+    name: oa-mongo
+  type: LoadBalancer

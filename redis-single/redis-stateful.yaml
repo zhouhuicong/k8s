@@ -1,0 +1,58 @@
+---
+# redis容器
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis
+spec:
+  replicas: 1
+  serviceName: redis-service
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+      - name: redis
+        image: redis:5
+        imagePullPolicy: IfNotPresent
+        command:
+        - sh
+        - -c
+        - "exec redis-server /usr/local/etc/redis/redis.conf"
+        ports:
+        - name: redis
+          containerPort: 6379
+          protocol: TCP
+        resources:
+          requests:
+            cpu: 2
+            memory: 2048Mi
+          limits:
+            cpu: 4
+            memory: 8096Mi
+        volumeMounts:
+        - name: redis-config
+          mountPath: /usr/local/etc/redis
+        - name: redis-data
+          mountPath: /var/lib/redis
+#      imagePullSecrets:
+#        - name: k8s-auth
+      volumes:
+      - name: redis-config
+        configMap:
+          name: redis-config-map
+  volumeClaimTemplates:
+  - metadata:
+      name: redis-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      volumeMode: Filesystem
+      resources:
+        requests:
+          storage: 10Gi   # 和上面pv匹配
+      storageClassName: longhorn-commonsoft   # 和上面pv的storageClassName匹配
+ 

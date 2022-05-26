@@ -1,0 +1,11 @@
+进入 mongodb 客户端
+mongo admin
+执行如下命令创建用户即可
+use admin
+db.createUser(
+  {
+    user: "root",
+    pwd: "12345",
+    roles: [ { role: "userAdminAnyDatabase", db: "admin" }, "readWriteAnyDatabase" ]
+  }
+)
