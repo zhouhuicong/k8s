@@ -1,0 +1,47 @@
+#rabbitmq-cluster-svc.yaml
+ 
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq-cluster
+  labels:
+    app: rabbitmq-cluster
+spec:
+  ports:
+    - name: http
+      protocol: TCP
+      port: 15672
+      targetPort: 15672
+    - name: amqp
+      protocol: TCP
+      port: 5672
+      targetPort: 5672
+  selector:
+    app: rabbitmq
+  clusterIP: None
+
+---
+#rabbitmq-lb-svc.yaml
+ 
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq-external-service
+  labels:
+    app: rabbitmq
+spec:
+  ports:
+    - name: management
+      protocol: TCP
+      port: 15672
+      targetPort: 15672
+      nodePort: 31672
+    - name: mqservice
+      protocol: TCP
+      port: 5672
+      targetPort: 5672
+      nodePort: 30672
+  selector:
+    app: rabbitmq
+  type: NodePort
+

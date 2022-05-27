@@ -1,0 +1,96 @@
+#rabbitmq-sts.yaml 
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: rabbitmq
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rabbitmq
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: rabbitmq
+    spec:
+#      serviceAccountName: rabbitmq
+      volumes:
+        - name: config-volume
+          configMap:
+            name: rabbitmq-config
+            items:
+              - key: rabbitmq.conf
+                path: rabbitmq.conf
+              - key: enabled_plugins
+                path: enabled_plugins
+            defaultMode: 420
+      containers:
+        - name: rabbitmq
+          image: '567969457461.dkr.ecr.cn-northwest-1.amazonaws.com.cn/rabbitmq:3.7'
+          ports:
+            - name: http
+              containerPort: 15672
+              protocol: TCP
+            - name: amqp
+              containerPort: 5672
+              protocol: TCP
+          env:
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+            - name: RABBITMQ_USE_LONGNAME
+              value: 'true'
+            - name: RABBITMQ_NODENAME
+              value: >-
+                rabbit@$(HOSTNAME).rabbitmq-cluster-c.$(NAMESPACE).svc.cluster.local
+            - name: RABBITMQ_ERLANG_COOKIE
+              value: a5mjCA21
+          resources: {}
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/rabbitmq
+            - name: mq-data
+              mountPath: /var/lib/rabbitmq
+          livenessProbe:
+            exec:
+              command:
+                - rabbitmqctl
+                - status
+            initialDelaySeconds: 60
+            timeoutSeconds: 15
+            periodSeconds: 60
+            successThreshold: 1
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command:
+                - rabbitmqctl
+                - status
+            initialDelaySeconds: 20
+            timeoutSeconds: 10
+            periodSeconds: 60
+            successThreshold: 1
+            failureThreshold: 3
+  volumeClaimTemplates:
+    - kind: PersistentVolumeClaim
+      apiVersion: v1
+      metadata:
+        name: mq-data
+        creationTimestamp: null
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 10Gi
+        storageClassName: longhorn-commonsoft
+        volumeMode: Filesystem
+  serviceName: rabbitmq-cluster
