@@ -13,4 +13,4 @@ data:
     appendonly yes
     daemonize no
     protected-mode no
-    requirepass Ubiquant@123
+    requirepass xxxxx

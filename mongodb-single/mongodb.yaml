@@ -70,7 +70,7 @@ spec:
           - name: MONGO_INITDB_ROOT_USERNAME
             value: root
           - name: MONGO_INITDB_ROOT_PASSWORD
-            value: 'Ubiquant@123'
+            value: 'xxxx'
         command:  
         - mongod 
         - "-f"
