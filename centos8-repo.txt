@@ -1,0 +1,30 @@
+centos-base.repo 
+[base]
+name=CentOS-8.1.1911 - Base - mirror.nsc.liu.se
+#failovermethod=priority
+baseurl=http://mirror.nsc.liu.se/centos-store/8.1.1911/BaseOS/x86_64/os/
+gpgcheck=0
+#additional packages that may be useful
+[extras]
+name=CentOS-8.1.1911 - Extras - mirror.nsc.liu.se
+#failovermethod=priority
+baseurl=http://mirror.nsc.liu.se/centos-store/8.1.1911/extras/x86_64/os/
+gpgcheck=0
+#additional packages that extend functionality of existing packages
+[centosplus]
+name=CentOS-8.1.1911 - Plus - mirror.nsc.liu.se
+#failovermethod=priority
+baseurl=http://mirror.nsc.liu.se/centos-store/8.1.1911/centosplus/x86_64/os/
+gpgcheck=0
+enabled=0
+[PowerTools]
+name=CentOS-8.1.1911 - PowerTools - mirror.nsc.liu.se
+#failovermethod=priority
+baseurl=http://mirror.nsc.liu.se/centos-store/8.1.1911/PowerTools/x86_64/os/
+gpgcheck=0
+enabled=0
+[AppStream]
+name=CentOS-8.1.1911 - AppStream - mirror.nsc.liu.se
+#failovermethod=priority
+baseurl=http://mirror.nsc.liu.se/centos-store/8.1.1911/AppStream/x86_64/os/
+gpgcheck=0
