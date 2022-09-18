@@ -1,0 +1,131 @@
+
+
+三、创建 ServiceAccount & ClusterRoleBinding
+
+vi  jenkins-rbac.yaml
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: jenkins-admin-zhc       #ServiceAccount名
+  namespace: jenkins     #指定namespace，一定要修改成你自己的namespace
+  labels:
+    name: jenkins-zhc
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: jenkins-admin-zhc
+  labels:
+    name: jenkins-zhc
+subjects:
+  - kind: ServiceAccount
+    name: jenkins-admin-zhc
+    namespace: jenkins
+roleRef:
+  kind: ClusterRole
+  name: cluster-admin-zhc
+  apiGroup: rbac.authorization.k8s.io
+  
+创建 Service & Deployment
+
+vi  jenkins-service.yaml
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: jenkins-zhc
+  labels:
+    app: jenkins-zhc
+spec:
+  type: ClusterIP  #cLusterIP方式暴露 Jenkins 端口
+  ports:
+  - name: http
+    port:  8080         #服务端口
+    targetPort: 8080   
+  - name: jnlp
+    port:  50000        #代理端口
+    targetPort: 50000
+  selector:
+    app: jenkins-zhc
+
+
+vi  jenkins-deployment.yaml   #nfs
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jenkins-zhc
+  labels:
+    app: jenkins-zhc
+spec:
+  selector:
+    matchLabels:
+      app: jenkins-zhc
+  replicas:
+  template:
+    metadata:
+      labels:
+        app: jenkins-zhc
+    spec:
+      serviceAccountName: jenkins-admin-zhc
+      containers:
+      - name: jenkins-zhc
+        image: jenkins/jenkins:2.150
+        securityContext:
+          runAsUser: 0       #设置以ROOT用户运行容器
+          privileged: true   #拥有特权
+        ports:
+        - name: http
+          containerPort: 8080
+        - name: jnlp
+          containerPort: 50000
+        resources:
+          limits:
+            memory: "1024Mi"
+            cpu: "500m"
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+        env:
+        - name: JAVA_TOOL_OPTIONS
+          value: -Dfile.encoding=UTF-8
+        - name: "JAVA_OPTS"  #设置变量，指定时区和 jenkins slave 执行者设置
+          value: "
+                   -Xmx1024m
+                   -XshowSettings:vm
+                   -Dhudson.slaves.NodeProvisioner.initialDelay=0
+                   -Dhudson.slaves.NodeProvisioner.MARGIN=50
+                   -Dhudson.slaves.NodeProvisioner.MARGIN0=0.85
+                   -Duser.timezone=Asia/Shanghai
+                   -Dsun.jnu.encoding=UTF-8
+                    -Dfile.encoding=UTF-8
+                 "
+        - name: "JENKINS_OPTS"
+          value: "--prefix=/jenkins"         #设置路径前缀加上 Jenkins
+        volumeMounts:                        #设置要挂在的目录
+        #- name: data
+        #  mountPath: /var/jenkins_home
+        - name: jenkins-data
+          mountPath: /var/jenkins_home
+        - name: "jenkins-ssh"
+          mountPath: /root
+      volumes:
+	  #- name: data
+      #  persistentVolumeClaim:
+      #    claimName: jenkins-zhc      #设置PVC
+      - name: jenkins-data
+        nfs:
+          path: /test/jenkins/master
+          server: 172.16.131.173
+      - name: jenkins-ssh
+        nfs:
+          path: /test/jenkins/root
+          server: 172.16.131.173
+
+
+
+
+
+
+  
